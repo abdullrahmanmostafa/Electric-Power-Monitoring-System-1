@@ -14,7 +14,46 @@ namespace Electric_Power_Monitoring_System.Controllers
         {
             _readingRepo = readingRepo;
         }
+        [HttpGet("day")]
+        public async Task<IActionResult> GetDayConsumption(
+    [FromQuery] string hubSerial,
+    [FromQuery] int plugNumber,
+    [FromQuery] DateTime date)
+        {
+            if (string.IsNullOrWhiteSpace(hubSerial))
+                return BadRequest("hubSerial is required");
 
+            var total = await _readingRepo.GetTotalConsumptionForDayAsync(hubSerial, plugNumber, date);
+            return Ok(new TotalConsumptionResponseDto
+            {
+                HubSerial = hubSerial,
+                PlugNumber = plugNumber,
+                StartDate = date.Date,
+                EndDate = date.Date.AddDays(1),
+                TotalConsumptionWh = total,
+                PeriodType = "day"
+            });
+        }
+        [HttpGet("week")]
+        public async Task<IActionResult> GetWeekConsumption(
+    [FromQuery] string hubSerial,
+    [FromQuery] int plugNumber,
+    [FromQuery] DateTime weekStart) // يجب أن يكون التاريخ هو أول يوم في الأسبوع (الأحد)
+        {
+            if (string.IsNullOrWhiteSpace(hubSerial))
+                return BadRequest("hubSerial is required");
+
+            var total = await _readingRepo.GetTotalConsumptionForWeekAsync(hubSerial, plugNumber, weekStart);
+            return Ok(new TotalConsumptionResponseDto
+            {
+                HubSerial = hubSerial,
+                PlugNumber = plugNumber,
+                StartDate = weekStart.Date,
+                EndDate = weekStart.Date.AddDays(7),
+                TotalConsumptionWh = total,
+                PeriodType = "week"
+            });
+        }
         [HttpGet("hourly")]
         public async Task<IActionResult> GetHourlyConsumption(
             [FromQuery] string hubSerial,
@@ -50,6 +89,30 @@ namespace Electric_Power_Monitoring_System.Controllers
                 HubSerial = hubSerial,
                 PlugNumber = plugNumber,
                 Periods = periods
+            });
+        }
+        [HttpGet("month")]
+        public async Task<IActionResult> GetMonthConsumption(
+    [FromQuery] string hubSerial,
+    [FromQuery] int plugNumber,
+    [FromQuery] int year,
+    [FromQuery] int month)
+        {
+            if (string.IsNullOrWhiteSpace(hubSerial))
+                return BadRequest("hubSerial is required");
+            if (month < 1 || month > 12)
+                return BadRequest("Month must be between 1 and 12");
+
+            var total = await _readingRepo.GetTotalConsumptionForMonthAsync(hubSerial, plugNumber, year, month);
+            var start = new DateTime(year, month, 1);
+            return Ok(new TotalConsumptionResponseDto
+            {
+                HubSerial = hubSerial,
+                PlugNumber = plugNumber,
+                StartDate = start,
+                EndDate = start.AddMonths(1),
+                TotalConsumptionWh = total,
+                PeriodType = "month"
             });
         }
 

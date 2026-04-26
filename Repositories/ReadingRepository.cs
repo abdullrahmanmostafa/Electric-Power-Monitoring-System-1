@@ -15,7 +15,26 @@ namespace Electric_Power_Monitoring_System.Repositories
                 .OrderByDescending(r => r.Timestamp)
                 .FirstOrDefaultAsync();
         }
+        public async Task<decimal> GetTotalConsumptionForDayAsync(string hubSerial, int plugNumber, DateTime date)
+        {
+            var start = date.Date;
+            var end = start.AddDays(1);
+            return await GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
+        }
 
+        public async Task<decimal> GetTotalConsumptionForWeekAsync(string hubSerial, int plugNumber, DateTime weekStartDate)
+        {
+            var start = weekStartDate.Date;
+            var end = start.AddDays(7);
+            return await GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
+        }
+
+        public async Task<decimal> GetTotalConsumptionForMonthAsync(string hubSerial, int plugNumber, int year, int month)
+        {
+            var start = new DateTime(year, month, 1);
+            var end = start.AddMonths(1);
+            return await GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
+        }
         public async Task<Reading?> GetReadingBeforeTimestampAsync(string hubSerial, int plugNumber, DateTime timestamp)
         {
             return await _dbSet

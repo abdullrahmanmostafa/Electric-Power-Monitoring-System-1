@@ -4,6 +4,7 @@ using Electric_Power_Monitoring_System.Services;
 using Microsoft.EntityFrameworkCore;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Electric_Power_Monitoring_System;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,8 +40,10 @@ else
 //
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
+builder.Services.AddSwaggerGen(c =>
+{
+    c.OperationFilter<AddRequiredHeaderParameter>();
+});
 //
 // Database (PostgreSQL)
 //
