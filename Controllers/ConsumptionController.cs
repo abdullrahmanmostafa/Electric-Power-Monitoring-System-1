@@ -93,24 +93,26 @@ namespace Electric_Power_Monitoring_System.Controllers
         }
         [HttpGet("month")]
         public async Task<IActionResult> GetMonthConsumption(
-    [FromQuery] string hubSerial,
-    [FromQuery] int plugNumber,
-    [FromQuery] int year,
-    [FromQuery] int month)
+      [FromQuery] string hubSerial,
+      [FromQuery] int plugNumber,
+      [FromQuery] int year,
+      [FromQuery] int month)
         {
             if (string.IsNullOrWhiteSpace(hubSerial))
                 return BadRequest("hubSerial is required");
             if (month < 1 || month > 12)
                 return BadRequest("Month must be between 1 and 12");
 
-            var total = await _readingRepo.GetTotalConsumptionForMonthAsync(hubSerial, plugNumber, year, month);
-            var start = new DateTime(year, month, 1);
+            var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var end = start.AddMonths(1); // inherits Kind = Utc
+
+            var total = await _readingRepo.GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
             return Ok(new TotalConsumptionResponseDto
             {
                 HubSerial = hubSerial,
                 PlugNumber = plugNumber,
                 StartDate = start,
-                EndDate = start.AddMonths(1),
+                EndDate = end,
                 TotalConsumptionWh = total,
                 PeriodType = "month"
             });
