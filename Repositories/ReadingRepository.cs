@@ -61,55 +61,38 @@ namespace Electric_Power_Monitoring_System.Repositories
 
         public async Task<decimal> GetConsumptionBetweenAsync(string hubSerial, int plugNumber, DateTime start, DateTime end)
         {
-            // تحويل التواريخ إلى UTC (لتجنب مشكلة Kind)
+            // Ensure UTC kind to avoid PostgreSQL issues
             if (start.Kind != DateTimeKind.Utc) start = DateTime.SpecifyKind(start, DateTimeKind.Utc);
             if (end.Kind != DateTimeKind.Utc) end = DateTime.SpecifyKind(end, DateTimeKind.Utc);
 
-            // جلب القراءات داخل الفترة
+            // Get readings strictly inside the period
             var readingsInRange = (await GetReadingsInRangeAsync(hubSerial, plugNumber, start, end)).ToList();
 
-            // إذا لم توجد أي قراءة داخل الفترة → 0
+            // No readings during the period → consumption = 0
             if (!readingsInRange.Any())
                 return 0;
 
-            // جلب القراءة قبل بداية الفترة (إن وجدت)
+            // Readings before and after the period
             var beforeStart = await GetReadingBeforeTimestampAsync(hubSerial, plugNumber, start);
-            // جلب القراءة بعد نهاية الفترة (إن وجدت)
             var afterEnd = await GetReadingAfterTimestampAsync(hubSerial, plugNumber, end);
 
-            decimal startEnergy = beforeStart?.CumulativeEnergyWh ?? 0;
-            decimal endEnergy = afterEnd?.CumulativeEnergyWh ?? 0;
+            // Determine effective start energy
+            decimal startEnergy;
+            if (beforeStart != null)
+                startEnergy = beforeStart.CumulativeEnergyWh;
+            else
+                startEnergy = readingsInRange.First().CumulativeEnergyWh;   // first reading inside period
 
-            // إذا كان afterEnd غير موجود، استخدم آخر قراءة داخل الفترة
-            if (afterEnd == null)
-                endEnergy = readingsInRange.Last().CumulativeEnergyWh;
+            // Determine effective end energy
+            decimal endEnergy;
+            if (afterEnd != null)
+                endEnergy = afterEnd.CumulativeEnergyWh;
+            else
+                endEnergy = readingsInRange.Last().CumulativeEnergyWh;      // last reading inside period
 
-            // إذا كان beforeStart غير موجود، استخدم أول قراءة داخل الفترة كبداية
-            // لكن لا نستعمل 0 لأن ذلك سيُظهر استهلاك وهمي في الفترات السابقة.
-            // في حالة عدم وجود beforeStart، نعتمد على that the consumption is simply endEnergy - firstInRange? 
-            // لكن العبرة: نحن نعلم أن قبل أول قراءة كان الاستهلاك صفراً، وأول قراءة حدثت داخل الفترة الحالية (لأن readingsInRange not empty).
-            // إذن استهلاك الفترة الحالية = (endEnergy - firstInRange) + (firstInRange - 0) = endEnergy.
-            // لذلك إذا كان beforeStart == null، فالاستهلاك = endEnergy (لأنه فرق بين آخر قراءة وبين الصفر).
-            // ولكن هذا سيعيد 100 للفترة التي تحتوي أول قراءة وهذا صحيح، لكنه سيعيد أيضاً 100 لأي فترة سابقة (وهي فارغة)؟ لا لأننا شرطنا أن readingsInRange موجودة فقط، لذلك لن يحدث ذلك.
-            // فحالة قبل أول قراءة تكون readingsInRange فارغة، وبالتالي ترجع 0.
-            // إذن الكود الحالي يعمل بشكل صحيح مع إضافة شرط !readingsInRange.Any().
-            // لكن نحتاج إلى ضبط startEnergy و endEnergy بشكل دقيق.
-
-            // نستخدم الخوارزمية الكلاسيكية:
-            if (beforeStart != null && afterEnd != null)
-                return afterEnd.CumulativeEnergyWh - beforeStart.CumulativeEnergyWh;
-
-            if (beforeStart == null && afterEnd != null)
-                return afterEnd.CumulativeEnergyWh; // لأن بداية التراكم من الصفر
-                                                    // (هذه الحالة لن تحدث لأننا تحققنا من وجود readingsInRange، فعلاً قد تحدث إذا كان afterEnd من القراءات المستقبلية وليس هناك beforeStart)
-                                                    // لكن نضمن صحة.
-
-            // أسهل طريقة لإرضاء جميع الحالات:
-            // استخدام القراءة الأولى داخل الفترة كـ startEnergy إذا لم نجد beforeStart.
-            // واستخدام القراءة الأخيرة داخل الفترة كـ endEnergy إذا لم نجد afterEnd.
-            var effectiveStartEnergy = beforeStart?.CumulativeEnergyWh ?? readingsInRange.First().CumulativeEnergyWh;
-            var effectiveEndEnergy = afterEnd?.CumulativeEnergyWh ?? readingsInRange.Last().CumulativeEnergyWh;
-            return effectiveEndEnergy - effectiveStartEnergy;
+            // Calculate consumption and ensure it is non‑negative
+            var consumption = endEnergy - startEnergy;
+            return consumption < 0 ? 0 : consumption;
         }
     }
 }

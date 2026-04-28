@@ -177,13 +177,12 @@ namespace Electric_Power_Monitoring_System.Services
             string message;
             if (periodType == "daily")
             {
-                message = $"Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous day.";
+                message = $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous day.";
             }
             else
             {
-                message = $"Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous week.";
+                message = $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous week.";
             }
-
             var title = "Energy Alert";
 
             // Get user's FCM tokens
