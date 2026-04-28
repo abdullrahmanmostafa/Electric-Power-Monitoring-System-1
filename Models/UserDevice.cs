@@ -23,5 +23,24 @@ namespace Electric_Power_Monitoring_System.Models
 
         [Column("last_updated")]
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
+        [Column("first_name")]
+        [MaxLength(50)]
+        public string? FirstName { get; set; }
+
+        [Column("last_name")]
+        [MaxLength(50)]
+        public string? LastName { get; set; }
+
+        [Column("email")]
+        [MaxLength(100)]
+        public string? Email { get; set; }
+
+        [Column("phone")]
+        [MaxLength(20)]
+        public string? Phone { get; set; }
+
+        [Column("password")]
+        [MaxLength(255)]
+        public string? Password { get; set; }  // تخزين كلمات المرور كما هي (أو مشفرة)
     }
 }

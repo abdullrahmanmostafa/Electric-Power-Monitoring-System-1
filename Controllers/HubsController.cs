@@ -18,16 +18,21 @@ namespace Electric_Power_Monitoring_System.Controllers
         [HttpPost("link")]
         public async Task<IActionResult> LinkHubToUser([FromBody] LinkHubRequestDto request)
         {
-            // Assume user ID is obtained from authentication token (handled by mobile dev)
-            // For now, we accept a header "X-User-Id" for simplicity.
             var userId = Request.Headers["X-User-Id"].FirstOrDefault();
             if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User ID missing");
+                return Unauthorized("X-User-Id header is required");
 
             var hub = await _hubRepo.GetBySerialAsync(request.Serial);
             if (hub == null)
                 return NotFound($"Hub with serial {request.Serial} not found");
 
+            // إذا كان الـ hub مرتبطًا بالفعل بمستخدم مختلف
+            if (!string.IsNullOrEmpty(hub.UserId) && hub.UserId != userId)
+            {
+                return BadRequest($"Hub {request.Serial} is already linked to another user. Cannot relink.");
+            }
+
+            // إذا كان غير مرتبط أو مرتبط بنفس المستخدم (تكرار المحاولة)
             hub.UserId = userId;
             await _hubRepo.UpdateAsync(hub);
 
