@@ -19,7 +19,7 @@ namespace Electric_Power_Monitoring_System.Controllers
 
         // جلب بيانات المستخدم (أول جهاز لهذا user_id)
         [HttpGet]
-        public async Task<IActionResult> GetProfile([FromHeader(Name = "X-User-Id")] string userId)
+        public async Task<IActionResult> GetProfile( string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 return BadRequest("X-User-Id header is required");
@@ -42,7 +42,7 @@ namespace Electric_Power_Monitoring_System.Controllers
 
         // إنشاء أو تحديث بيانات المستخدم (لجميع أجهزته)
         [HttpPost]
-        public async Task<IActionResult> UpdateProfile([FromHeader(Name = "X-User-Id")] string userId, [FromBody] UserProfileDto profile)
+        public async Task<IActionResult> UpdateProfile( string userId, [FromBody] UserProfileDto profile)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 return BadRequest("X-User-Id header is required");
@@ -72,7 +72,7 @@ namespace Electric_Power_Monitoring_System.Controllers
 
         // حذف البيانات الشخصية للمستخدم (من جميع أجهزته)
         [HttpDelete]
-        public async Task<IActionResult> DeleteProfile([FromHeader(Name = "X-User-Id")] string userId)
+        public async Task<IActionResult> DeleteProfile( string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 return BadRequest("X-User-Id header is required");
