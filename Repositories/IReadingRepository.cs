@@ -4,6 +4,8 @@ namespace Electric_Power_Monitoring_System.Repositories
 {
     public interface IReadingRepository : IRepository<Reading>
     {
+        Task<decimal> GetHourlyConsumptionAsync(string hubSerial, int plugNumber, DateTime start, DateTime end);
+        Task<decimal> GetAggregatedConsumptionAsync(string hubSerial, int plugNumber, DateTime start, DateTime end);
         Task<Reading?> GetLastReadingAsync(string hubSerial, int plugNumber);
         Task<Reading?> GetReadingBeforeTimestampAsync(string hubSerial, int plugNumber, DateTime timestamp);
         Task<Reading?> GetReadingAfterTimestampAsync(string hubSerial, int plugNumber, DateTime timestamp);
