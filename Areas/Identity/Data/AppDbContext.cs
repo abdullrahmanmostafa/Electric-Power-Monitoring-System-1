@@ -12,11 +12,20 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
         public DbSet<Reading> Readings { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<UserDevice> UserDevices { get; set; }   // New table for FCM tokens
+        public DbSet<User> Users { get; set; }
 
+        // Inside OnModelCreating
+  
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.UserIdentifier).IsUnique().HasDatabaseName("IX_users_user_identifier");
+                entity.HasIndex(e => e.Email).IsUnique().HasDatabaseName("IX_users_email");
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
             // Hub configuration
             modelBuilder.Entity<Hub>(entity =>
             {
