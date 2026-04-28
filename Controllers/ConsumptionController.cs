@@ -14,12 +14,11 @@ namespace Electric_Power_Monitoring_System.Controllers
         {
             _readingRepo = readingRepo;
         }
-
         [HttpGet("day")]
         public async Task<IActionResult> GetDayConsumption(
-            [FromQuery] string hubSerial,
-            [FromQuery] int plugNumber,
-            [FromQuery] DateTime date)
+    [FromQuery] string hubSerial,
+    [FromQuery] int plugNumber,
+    [FromQuery] DateTime date)
         {
             if (string.IsNullOrWhiteSpace(hubSerial))
                 return BadRequest("hubSerial is required");
@@ -35,12 +34,11 @@ namespace Electric_Power_Monitoring_System.Controllers
                 PeriodType = "day"
             });
         }
-
         [HttpGet("week")]
         public async Task<IActionResult> GetWeekConsumption(
-            [FromQuery] string hubSerial,
-            [FromQuery] int plugNumber,
-            [FromQuery] DateTime weekStart) // يجب أن يكون التاريخ هو أول يوم في الأسبوع (الأحد)
+    [FromQuery] string hubSerial,
+    [FromQuery] int plugNumber,
+    [FromQuery] DateTime weekStart) // يجب أن يكون التاريخ هو أول يوم في الأسبوع (الأحد)
         {
             if (string.IsNullOrWhiteSpace(hubSerial))
                 return BadRequest("hubSerial is required");
@@ -56,7 +54,6 @@ namespace Electric_Power_Monitoring_System.Controllers
                 PeriodType = "week"
             });
         }
-
         [HttpGet("hourly")]
         public async Task<IActionResult> GetHourlyConsumption(
             [FromQuery] string hubSerial,
@@ -95,13 +92,12 @@ namespace Electric_Power_Monitoring_System.Controllers
                 Periods = periods
             });
         }
-
         [HttpGet("month")]
         public async Task<IActionResult> GetMonthConsumption(
-            [FromQuery] string hubSerial,
-            [FromQuery] int plugNumber,
-            [FromQuery] int year,
-            [FromQuery] int month)
+      [FromQuery] string hubSerial,
+      [FromQuery] int plugNumber,
+      [FromQuery] int year,
+      [FromQuery] int month)
         {
             if (string.IsNullOrWhiteSpace(hubSerial))
                 return BadRequest("hubSerial is required");
@@ -109,10 +105,9 @@ namespace Electric_Power_Monitoring_System.Controllers
                 return BadRequest("Month must be between 1 and 12");
 
             var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var end = start.AddMonths(1);
+            var end = start.AddMonths(1); // inherits Kind = Utc
 
-            // ✅ Use aggregated (long‑period) logic for month
-            var total = await _readingRepo.GetAggregatedConsumptionAsync(hubSerial, plugNumber, start, end);
+            var total = await _readingRepo.GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
             return Ok(new TotalConsumptionResponseDto
             {
                 HubSerial = hubSerial,
@@ -131,7 +126,10 @@ namespace Electric_Power_Monitoring_System.Controllers
             [FromQuery] DateTime start,
             [FromQuery] DateTime end)
         {
-            // Optional: implement if needed (aggregated by day)
+            // Similar to hourly but aggregates by day
+            // You can reuse GetConsumptionBetweenAsync for each day
+            // For brevity, I'll leave the implementation pattern similar to hourly.
+            // (Full implementation can be added similarly.)
             return Ok("Not implemented in this example, but pattern same as hourly");
         }
     }
