@@ -15,6 +15,19 @@ namespace Electric_Power_Monitoring_System.Repositories
                 .OrderByDescending(r => r.Timestamp)
                 .FirstOrDefaultAsync();
         }
+        public async Task<Reading?> GetReadingNearTimestampAsync(string hubSerial, int plugNumber, DateTime timestamp, TimeSpan tolerance)
+        {
+            var lower = timestamp - tolerance;
+            var upper = timestamp + tolerance;
+
+            // Get readings within the tolerance window
+            var candidates = await _dbSet
+                .Where(r => r.HubSerial == hubSerial && r.PlugNumber == plugNumber && r.Timestamp >= lower && r.Timestamp <= upper)
+                .ToListAsync();
+
+            // Order by proximity to the target timestamp
+            return candidates.OrderBy(r => Math.Abs((r.Timestamp - timestamp).Ticks)).FirstOrDefault();
+        }
         public async Task<decimal> GetTotalConsumptionForDayAsync(string hubSerial, int plugNumber, DateTime date)
         {
             var start = date.Date;
@@ -61,38 +74,34 @@ namespace Electric_Power_Monitoring_System.Repositories
 
         public async Task<decimal> GetConsumptionBetweenAsync(string hubSerial, int plugNumber, DateTime start, DateTime end)
         {
-            // Ensure UTC kind to avoid PostgreSQL issues
+            // Ensure UTC kind
             if (start.Kind != DateTimeKind.Utc) start = DateTime.SpecifyKind(start, DateTimeKind.Utc);
             if (end.Kind != DateTimeKind.Utc) end = DateTime.SpecifyKind(end, DateTimeKind.Utc);
 
-            // Get readings strictly inside the period
+            // 1. Get readings strictly inside the period (for edge cases)
             var readingsInRange = (await GetReadingsInRangeAsync(hubSerial, plugNumber, start, end)).ToList();
 
-            // No readings during the period → consumption = 0
-            if (!readingsInRange.Any())
-                return 0;
+            // 2. Determine start energy – nearest reading within ±30 minutes, otherwise 0
+            var tolerance = TimeSpan.FromMinutes(30);
+            var nearStart = await GetReadingNearTimestampAsync(hubSerial, plugNumber, start, tolerance);
+            decimal startEnergy = nearStart?.CumulativeEnergyWh ?? 0;
 
-            // Readings before and after the period
-            var beforeStart = await GetReadingBeforeTimestampAsync(hubSerial, plugNumber, start);
-            var afterEnd = await GetReadingAfterTimestampAsync(hubSerial, plugNumber, end);
-
-            // Determine effective start energy
-            decimal startEnergy;
-            if (beforeStart != null)
-                startEnergy = beforeStart.CumulativeEnergyWh;
-            else
-                startEnergy = readingsInRange.First().CumulativeEnergyWh;   // first reading inside period
-
-            // Determine effective end energy
+            // 3. Determine end energy – latest reading before or at 'end'
+            var beforeEnd = await GetReadingBeforeTimestampAsync(hubSerial, plugNumber, end);
             decimal endEnergy;
-            if (afterEnd != null)
-                endEnergy = afterEnd.CumulativeEnergyWh;
+            if (beforeEnd != null)
+            {
+                endEnergy = beforeEnd.CumulativeEnergyWh;
+            }
             else
-                endEnergy = readingsInRange.Last().CumulativeEnergyWh;      // last reading inside period
+            {
+                // No reading before end: use the last reading inside the period if any, otherwise 0
+                endEnergy = readingsInRange.LastOrDefault()?.CumulativeEnergyWh ?? 0;
+            }
 
-            // Calculate consumption and ensure it is non‑negative
+            // 4. Calculate consumption and make it non‑negative
             var consumption = endEnergy - startEnergy;
-            return consumption < 0 ? 0 : consumption;
+            return consumption < 0 ? -consumption : consumption;
         }
     }
 }
