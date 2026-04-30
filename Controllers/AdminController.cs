@@ -28,10 +28,10 @@ namespace Electric_Power_Monitoring_System.Controllers
             foreach (var user in users)
             {
                 // Find all hubs linked to this user (using UserIdentifier)
-                var hubSerials = await _context.Hubs
-                    .Where(h => h.UserId == user.UserIdentifier)
-                    .Select(h => h.Serial)
-                    .ToListAsync();
+                var hubSerials = await _context.UserHubs
+    .Where(uh => uh.UserIdentifier == user.UserIdentifier)
+    .Select(uh => uh.HubSerial)
+    .ToListAsync();
 
                 result.Add(new UserInfoDto
                 {
@@ -58,19 +58,9 @@ namespace Electric_Power_Monitoring_System.Controllers
                 return NotFound(new { message = $"User with email '{email}' not found." });
 
             // Delete related data
-            var hubs = await _context.Hubs.Where(h => h.UserId == user.UserIdentifier).ToListAsync();
-            foreach (var hub in hubs)
-            {
-                var readings = _context.Readings.Where(r => r.HubSerial == hub.Serial);
-                _context.Readings.RemoveRange(readings);
-
-                var plugs = _context.Plugs.Where(p => p.HubSerial == hub.Serial);
-                _context.Plugs.RemoveRange(plugs);
-
-                var notifications = _context.Notifications.Where(n => n.HubSerial == hub.Serial);
-                _context.Notifications.RemoveRange(notifications);
-            }
-            _context.Hubs.RemoveRange(hubs);
+            var userHubs = _context.UserHubs.Where(uh => uh.UserIdentifier == user.UserIdentifier);
+       
+            _context.UserHubs.RemoveRange(userHubs);
 
             var userDevices = _context.UserDevices.Where(ud => ud.UserId == user.UserIdentifier);
             _context.UserDevices.RemoveRange(userDevices);

@@ -1,76 +1,84 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Electric_Power_Monitoring_System.Areas.Identity.Data;
 using Electric_Power_Monitoring_System.DTOs;
+using Electric_Power_Monitoring_System.Models;
 using Electric_Power_Monitoring_System.Repositories;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace Electric_Power_Monitoring_System.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class HubsController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class HubsController : ControllerBase
+    private readonly IHubRepository _hubRepo;
+    private readonly IPlugRepository _plugRepo;
+    private readonly IReadingRepository _readingRepo;
+    private readonly AppDbContext _context;
+
+    public HubsController(IHubRepository hubRepo, IPlugRepository plugRepo, IReadingRepository readingRepo, AppDbContext context)
     {
-        private readonly IHubRepository _hubRepo;
+        _hubRepo = hubRepo;
+        _plugRepo = plugRepo;
+        _readingRepo = readingRepo;
+        _context = context;
+    }
 
-        public HubsController(IHubRepository hubRepo)
+    [HttpPost("link")]
+    public async Task<IActionResult> LinkHubToUser([FromBody] LinkHubRequestDto request)
+    {
+        var userIdentifier = Request.Headers["X-User-Id"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(userIdentifier))
+            return Unauthorized("X-User-Id header is required");
+
+        var hub = await _hubRepo.GetBySerialAsync(request.Serial);
+        if (hub == null)
+            return NotFound($"Hub with serial {request.Serial} not found");
+
+        // Check if already linked
+        var exists = await _context.UserHubs.AnyAsync(uh => uh.UserIdentifier == userIdentifier && uh.HubSerial == request.Serial);
+        if (exists)
+            return Ok(new { message = "Hub already linked to this user" });
+
+        var userHub = new UserHub
         {
-            _hubRepo = hubRepo;
-        }
+            UserIdentifier = userIdentifier,
+            HubSerial = request.Serial
+        };
+        _context.UserHubs.Add(userHub);
+        await _context.SaveChangesAsync();
 
-        [HttpPost("link")]
-        public async Task<IActionResult> LinkHubToUser([FromBody] LinkHubRequestDto request)
+        return Ok(new { message = "Hub linked successfully" });
+    }
+
+    [HttpGet("my-plugs")]
+    public async Task<IActionResult> GetMyPlugs()
+    {
+        var userIdentifier = Request.Headers["X-User-Id"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(userIdentifier))
+            return Unauthorized("User ID missing");
+
+        // Get all hub serials linked to this user
+        var hubSerials = await _context.UserHubs
+            .Where(uh => uh.UserIdentifier == userIdentifier)
+            .Select(uh => uh.HubSerial)
+            .ToListAsync();
+
+        var result = new List<PlugResponseDto>();
+        foreach (var serial in hubSerials)
         {
-            var userId = Request.Headers["X-User-Id"].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("X-User-Id header is required");
-
-            var hub = await _hubRepo.GetBySerialAsync(request.Serial);
-            if (hub == null)
-                return NotFound($"Hub with serial {request.Serial} not found");
-
-            // إذا كان الـ hub مرتبطًا بالفعل بمستخدم مختلف
-            if (!string.IsNullOrEmpty(hub.UserId) && hub.UserId != userId)
+            var plugs = await _plugRepo.GetPlugsByHubSerialAsync(serial);
+            foreach (var plug in plugs)
             {
-                return BadRequest($"Hub {request.Serial} is already linked to another user. Cannot relink.");
-            }
-
-            // إذا كان غير مرتبط أو مرتبط بنفس المستخدم (تكرار المحاولة)
-            hub.UserId = userId;
-            await _hubRepo.UpdateAsync(hub);
-
-            return Ok(new { message = "Hub linked successfully" });
-        }
-
-        [HttpGet("my-plugs")]
-        public async Task<IActionResult> GetMyPlugs()
-        {
-            var userId = Request.Headers["X-User-Id"].FirstOrDefault();
-            if (string.IsNullOrWhiteSpace(userId))
-                return Unauthorized("User ID missing");
-
-            var hubs = await _hubRepo.GetHubsByUserIdAsync(userId);
-            if (!hubs.Any())
-                return Ok(new List<PlugResponseDto>());
-
-            // Get all plugs for all hubs of this user
-            var plugRepo = HttpContext.RequestServices.GetRequiredService<IPlugRepository>();
-            var allPlugs = new List<PlugResponseDto>();
-            foreach (var hub in hubs)
-            {
-                var plugs = await plugRepo.GetPlugsByHubSerialAsync(hub.Serial);
-                foreach (var plug in plugs)
+                var lastReading = await _readingRepo.GetLastReadingAsync(serial, plug.PlugNumber);
+                result.Add(new PlugResponseDto
                 {
-                    var lastReading = await HttpContext.RequestServices.GetRequiredService<IReadingRepository>()
-                        .GetLastReadingAsync(hub.Serial, plug.PlugNumber);
-                    allPlugs.Add(new PlugResponseDto
-                    {
-                        PlugNumber = plug.PlugNumber,
-                        Name = plug.Name,
-                        LastEnergyWh = lastReading?.CumulativeEnergyWh,
-                        LastState = lastReading?.State,
-                        LastReadingTime = lastReading?.Timestamp
-                    });
-                }
+                    PlugNumber = plug.PlugNumber,
+                    Name = plug.Name,
+                    LastEnergyWh = lastReading?.CumulativeEnergyWh,
+                    LastState = lastReading?.State,
+                    LastReadingTime = lastReading?.Timestamp
+                });
             }
-            return Ok(allPlugs);
         }
+        return Ok(result);
     }
 }

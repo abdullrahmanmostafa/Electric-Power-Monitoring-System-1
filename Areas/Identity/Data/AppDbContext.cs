@@ -13,12 +13,19 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<UserDevice> UserDevices { get; set; }   // New table for FCM tokens
         public DbSet<User> Users { get; set; }
-
+        public DbSet<UserHub> UserHubs { get; set; }
         // Inside OnModelCreating
-  
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<UserHub>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserIdentifier, e.HubSerial })
+                      .IsUnique()
+                      .HasDatabaseName("IX_user_hubs_user_hub");
+            });
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -30,7 +37,6 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
             modelBuilder.Entity<Hub>(entity =>
             {
                 entity.HasKey(e => e.Serial);
-                entity.HasIndex(e => e.UserId).HasDatabaseName("IX_hubs_user_id");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.LastSeen).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });

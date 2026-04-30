@@ -13,11 +13,6 @@ namespace Electric_Power_Monitoring_System.Repositories
             return await _dbSet.FirstOrDefaultAsync(h => h.Serial == serial);
         }
 
-        public async Task<IEnumerable<Hub>> GetHubsByUserIdAsync(string userId)
-        {
-            return await _dbSet.Where(h => h.UserId == userId).ToListAsync();
-        }
-
         public async Task UpdateLastSeenAsync(string serial)
         {
             var hub = await GetBySerialAsync(serial);

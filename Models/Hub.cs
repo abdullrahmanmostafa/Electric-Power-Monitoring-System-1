@@ -12,9 +12,6 @@ namespace Electric_Power_Monitoring_System.Models
             [MaxLength(50)]
             public string Serial { get; set; } = string.Empty;
 
-            [Column("user_id")]
-            [MaxLength(100)]
-            public string? UserId { get; set; }  // Provided by mobile app after authentication
 
             [Column("created_at")]
             public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

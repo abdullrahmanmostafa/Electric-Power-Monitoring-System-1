@@ -67,10 +67,10 @@ namespace Electric_Power_Monitoring_System.Controllers
                 return Unauthorized(new AuthResponseDto { Message = "Invalid email or password" });
 
             // Fetch hubs linked to this user
-            var hubSerials = await _context.Hubs
-                .Where(h => h.UserId == user.UserIdentifier)
-                .Select(h => h.Serial)
-                .ToListAsync();
+            var hubSerials = await _context.UserHubs
+        .Where(uh => uh.UserIdentifier == user.UserIdentifier)
+        .Select(uh => uh.HubSerial)
+        .ToListAsync();
 
             return Ok(new AuthResponseDto
             {
