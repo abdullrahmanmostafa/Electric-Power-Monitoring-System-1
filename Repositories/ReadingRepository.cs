@@ -101,29 +101,45 @@ namespace Electric_Power_Monitoring_System.Repositories
         // ===================== للمقارنات الطويلة (Day, Week, Month) =====================
         public async Task<decimal> GetAggregatedConsumptionAsync(string hubSerial, int plugNumber, DateTime start, DateTime end)
         {
-            // توحيد التوقيت إلى UTC
+            // Ensure UTC kind
             if (start.Kind != DateTimeKind.Utc) start = DateTime.SpecifyKind(start, DateTimeKind.Utc);
             if (end.Kind != DateTimeKind.Utc) end = DateTime.SpecifyKind(end, DateTimeKind.Utc);
 
-            // جلب القراءات داخل الفترة
+            // Get readings inside the period
             var readingsInRange = (await GetReadingsInRangeAsync(hubSerial, plugNumber, start, end))
                                   .OrderBy(r => r.Timestamp)
                                   .ToList();
 
-            // لا توجد أي قراءة في هذه الفترة → الاستهلاك صفر
+            // Case 1: No readings inside period → consumption = 0
             if (!readingsInRange.Any())
                 return 0;
 
-            // أول قراءة داخل الفترة (أو قبلها إن وجدت)
+            // Case 2: Multiple readings inside period
+            if (readingsInRange.Count > 1)
+            {
+                var firstEnergy = readingsInRange.First().CumulativeEnergyWh;
+                var lastEnergy = readingsInRange.Last().CumulativeEnergyWh;
+                var consumption = lastEnergy - firstEnergy;
+                return consumption < 0 ? -consumption : consumption;
+            }
+
+            // Case 3: Exactly one reading inside period
+            var singleReading = readingsInRange.First();
+            var singleEnergy = singleReading.CumulativeEnergyWh;
+
+            // Search for the last reading BEFORE the period start
             var beforeStart = await GetReadingBeforeTimestampAsync(hubSerial, plugNumber, start);
-            decimal startEnergy = beforeStart?.CumulativeEnergyWh ?? readingsInRange.First().CumulativeEnergyWh;
-
-            // آخر قراءة داخل الفترة (أو بعدها إن وجدت)
-            var afterEnd = await GetReadingAfterTimestampAsync(hubSerial, plugNumber, end);
-            decimal endEnergy = afterEnd?.CumulativeEnergyWh ?? readingsInRange.Last().CumulativeEnergyWh;
-
-            var consumption = endEnergy - startEnergy;
-            return consumption < 0 ? -consumption : consumption;
+            if (beforeStart != null)
+            {
+                // Consumption = single reading - last reading before period
+                var consumption = singleEnergy - beforeStart.CumulativeEnergyWh;
+                return consumption < 0 ? -consumption : consumption;
+            }
+            else
+            {
+                // No reading before period → assume start energy = 0
+                return singleEnergy;
+            }
         }
         public async Task<decimal> GetConsumptionBetweenAsync(string hubSerial, int plugNumber, DateTime start, DateTime end)
         {
