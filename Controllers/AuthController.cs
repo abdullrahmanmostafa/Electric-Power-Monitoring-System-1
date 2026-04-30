@@ -66,9 +66,20 @@ namespace Electric_Power_Monitoring_System.Controllers
             if (!PasswordHelper.VerifyPassword(request.Password, user.PasswordHash))
                 return Unauthorized(new AuthResponseDto { Message = "Invalid email or password" });
 
+            // Fetch hubs linked to this user
+            var hubSerials = await _context.Hubs
+                .Where(h => h.UserId == user.UserIdentifier)
+                .Select(h => h.Serial)
+                .ToListAsync();
+
             return Ok(new AuthResponseDto
             {
                 UserIdentifier = user.UserIdentifier,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                HubSerials = hubSerials,
                 Message = "Login successful"
             });
         }
