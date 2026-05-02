@@ -107,7 +107,7 @@ namespace Electric_Power_Monitoring_System.Controllers
             var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
             var end = start.AddMonths(1); // inherits Kind = Utc
 
-            var total = await _readingRepo.GetConsumptionBetweenAsync(hubSerial, plugNumber, start, end);
+            var total = await _readingRepo.GetAggregatedConsumptionAsync(hubSerial, plugNumber, start, end);
             return Ok(new TotalConsumptionResponseDto
             {
                 HubSerial = hubSerial,
