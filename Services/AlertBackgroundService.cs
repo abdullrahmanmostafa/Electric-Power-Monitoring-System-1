@@ -87,9 +87,20 @@ namespace Electric_Power_Monitoring_System.Services
                 .Distinct()
                 .ToListAsync();
 
+            if (!hubSerials.Any())
+            {
+                _logger.LogInformation("No hubs linked to any user.");
+                return;
+            }
+
+            var egyptNow = TimeZoneInfo.ConvertTime(DateTime.UtcNow, _egyptTimeZone);
+            var today = egyptNow.Date;
+            var yesterday = today.AddDays(-1);
+            var dayBefore = yesterday.AddDays(-1);
+
             foreach (var hubSerial in hubSerials)
             {
-                // Get all user identifiers linked to this hub
+                // Get all user identifiers for this hub
                 var userIdentifiers = await context.UserHubs
                     .Where(uh => uh.HubSerial == hubSerial)
                     .Select(uh => uh.UserIdentifier)
@@ -99,23 +110,108 @@ namespace Electric_Power_Monitoring_System.Services
                 var plugs = await plugRepo.GetPlugsByHubSerialAsync(hubSerial);
                 foreach (var plug in plugs)
                 {
-                    // Calculate consumption and decide if alert needed (same as before)
-                    // ... (use GetAggregatedConsumptionAsync for day/week)
-                    // If alert triggered, send to each user:
-                    foreach (var userId in userIdentifiers)
+                    // Daily comparison
+                    var consumptionYesterday = await readingRepo.GetAggregatedConsumptionAsync(
+                        hubSerial, plug.PlugNumber, yesterday, today);
+                    var consumptionDayBefore = await readingRepo.GetAggregatedConsumptionAsync(
+                        hubSerial, plug.PlugNumber, dayBefore, yesterday);
+
+                    await SendAlertToAllUsers(
+                        userIdentifiers,
+                        hubSerial,
+                        plug.PlugNumber,
+                        consumptionYesterday,
+                        consumptionDayBefore,
+                        "daily",
+                        yesterday,
+                        today,
+                        fcmSender,
+                        notificationRepo,
+                        userDeviceRepo);
+
+                    // Weekly comparison on Sunday
+                    if (egyptNow.DayOfWeek == DayOfWeek.Sunday)
                     {
-                        // Get FCM tokens for this user (real tokens, not placeholder)
-                        var devices = await userDeviceRepo.GetByUserIdAsync(userId);
-                        foreach (var device in devices)
-                        {
-                            // Skip placeholder tokens if any
-                            if (device.FcmToken == "linked_hub") continue;
-                            // Send notification
-                            // ...
-                        }
-                        // Store notification in database
+                        var endOfLastWeek = today;
+                        var startOfLastWeek = endOfLastWeek.AddDays(-7);
+                        var startOfPreviousWeek = startOfLastWeek.AddDays(-7);
+                        var endOfPreviousWeek = startOfLastWeek;
+
+                        var consumptionLastWeek = await readingRepo.GetAggregatedConsumptionAsync(
+                            hubSerial, plug.PlugNumber, startOfLastWeek, endOfLastWeek);
+                        var consumptionPrevWeek = await readingRepo.GetAggregatedConsumptionAsync(
+                            hubSerial, plug.PlugNumber, startOfPreviousWeek, endOfPreviousWeek);
+
+                        await SendAlertToAllUsers(
+                            userIdentifiers,
+                            hubSerial,
+                            plug.PlugNumber,
+                            consumptionLastWeek,
+                            consumptionPrevWeek,
+                            "weekly",
+                            startOfLastWeek,
+                            endOfLastWeek,
+                            fcmSender,
+                            notificationRepo,
+                            userDeviceRepo);
                     }
                 }
+            }
+        }
+        private async Task SendAlertToAllUsers(
+    List<string> userIdentifiers,
+    string hubSerial,
+    int plugNumber,
+    decimal currentConsumption,
+    decimal previousConsumption,
+    string periodType,
+    DateTime periodStart,
+    DateTime periodEnd,
+    IFcmSender fcmSender,
+    INotificationRepository notificationRepo,
+    IUserDeviceRepository userDeviceRepo)
+        {
+            if (currentConsumption == previousConsumption)
+                return;
+
+            var percentChange = previousConsumption == 0
+                ? (currentConsumption > 0 ? 100 : 0)
+                : ((currentConsumption - previousConsumption) / previousConsumption) * 100;
+
+            var direction = currentConsumption > previousConsumption ? "increased" : "decreased";
+            var changePercentAbs = Math.Abs(percentChange);
+            var message = periodType == "daily"
+                ? $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous day."
+                : $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous week.";
+
+            var title = "Energy Alert";
+
+            foreach (var userId in userIdentifiers)
+            {
+                // Get FCM tokens for this user (skip placeholder tokens)
+                var devices = await userDeviceRepo.GetByUserIdAsync(userId);
+                foreach (var device in devices)
+                {
+                    if (device.FcmToken == "linked_hub") continue;
+                    var sent = await fcmSender.SendNotificationAsync(device.FcmToken, title, message);
+                    if (sent)
+                    {
+                        _logger.LogInformation("Alert sent to user {UserId} for plug {PlugNumber}", userId, plugNumber);
+                    }
+                }
+
+                // Store notification in database for this user
+                var notification = new Notification
+                {
+                    UserId = userId,
+                    HubSerial = hubSerial,
+                    PlugNumber = plugNumber,
+                    Type = periodType == "daily" ? "daily_alert" : "weekly_alert",
+                    Message = message,
+                    SentAt = DateTime.UtcNow,
+                    FcmResponse = "Sent"
+                };
+                await notificationRepo.AddAsync(notification);
             }
         }
         private async Task SendAlertIfChanged(
