@@ -75,9 +75,6 @@ namespace Electric_Power_Monitoring_System.Controllers
 
             return Ok(new { message = $"User '{email}' and all associated data deleted successfully." });
         }
-
-
-            // Simple API key protection (optional)
             private bool IsAdminRequest()
             {
                 var adminKey = _config["Admin:ApiKey"];
@@ -338,5 +335,3 @@ namespace Electric_Power_Monitoring_System.Controllers
             }
         }
     }
-}
-}
