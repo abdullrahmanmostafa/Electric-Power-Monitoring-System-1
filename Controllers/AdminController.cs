@@ -77,18 +77,6 @@ namespace Electric_Power_Monitoring_System.Controllers
         }
 
 
-        public class AdminController : ControllerBase
-        {
-            private readonly AppDbContext _context;
-            private readonly IReadingRepository _readingRepo;
-            private readonly IConfiguration _config;
-            private static readonly DateTime _startTime = DateTime.UtcNow;
-
-            public AdminController(AppDbContext context, IReadingRepository readingRepo, IConfiguration config)
-            {
-              
-            }
-
             // Simple API key protection (optional)
             private bool IsAdminRequest()
             {
