@@ -13,6 +13,10 @@ namespace Electric_Power_Monitoring_System.Models
         [Column("tip_text")]
         public string TipText { get; set; } = string.Empty;
 
+        [Column("type")]
+        [MaxLength(50)]
+        public string Type { get; set; } = "tier";
+
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
     }

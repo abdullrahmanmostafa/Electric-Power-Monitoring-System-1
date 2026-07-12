@@ -18,6 +18,8 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
         public DbSet<UserConsumptionTracking> UserConsumptionTracking { get; set; }
         public DbSet<AiTipsCache> AiTipsCache { get; set; }
         public DbSet<TierNotification> TierNotifications { get; set; }
+        public DbSet<DeviceBaseline> DeviceBaselines { get; set; }
+        public DbSet<AbnormalConsumptionTracking> AbnormalConsumptionTrackings { get; set; }
         // Inside OnModelCreating
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -127,8 +129,30 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
                 new AiTipsCache { Id = 4, TipText = "شغل الغسالة والغسالة الأطباق في أوقات الذروة المنخفضة (بعد 10 مساءً).", IsActive = true },
                 new AiTipsCache { Id = 5, TipText = "قلل من استخدام المكواة الكهربائية أو استخدمها لفترات قصيرة.", IsActive = true },
                 new AiTipsCache { Id = 6, TipText = "استخدم سخان المياه الشمسي بدلاً من الكهربائي.", IsActive = true },
-                new AiTipsCache { Id = 7, TipText = "افصل شاحن الهاتف بعد شحن البطارية.", IsActive = true }
+                new AiTipsCache { Id = 7, TipText = "افصل شاحن الهاتف بعد شحن البطارية.", IsActive = true, },
+                    new AiTipsCache { Id = 8, TipText = "افحص باب الثلاجة للتأكد من إغلاقه بإحكام.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 9, TipText = "نظف المكثف الخلفي للثلاجة من الأتربة.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 10, TipText = "تأكد من عدم وجود تسريب في غاز التبريد.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 11, TipText = "افحص منظم الحرارة واضبطه على درجة حرارة مناسبة.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 12, TipText = "تأكد من عدم وجود ثلج متراكم داخل الفريزر.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 13, TipText = "افصل الثلاجة لمدة ساعة ثم أعد تشغيلها.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 14, TipText = "تأكد من عدم وجود فجوات في عازل الباب.", Type = "abnormal", IsActive = true },
+                    new AiTipsCache { Id = 15, TipText = "قم بقياس درجة الحرارة داخل الثلاجة للتأكد من أنها مناسبة.", Type = "abnormal", IsActive = true }
             );
+                modelBuilder.Entity<DeviceBaseline>(entity =>
+                {
+                    entity.HasIndex(e => new { e.HubSerial, e.PlugNumber })
+                          .IsUnique()
+                          .HasDatabaseName("IX_device_baseline_hub_plug");
+                });
+
+            modelBuilder.Entity<AbnormalConsumptionTracking>(entity =>
+            {
+                entity.HasIndex(e => new { e.HubSerial, e.PlugNumber })
+                      .IsUnique()
+                      .HasDatabaseName("IX_abnormal_tracking_hub_plug");
+                entity.HasIndex(e => e.Stage).HasDatabaseName("IX_abnormal_tracking_stage");
+            });
         }
     }
 }

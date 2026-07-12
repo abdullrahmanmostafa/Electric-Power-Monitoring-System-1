@@ -70,7 +70,9 @@ builder.Services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
 builder.Services.AddScoped<ITierService, TierService>();
 builder.Services.AddScoped<IAiService, OpenAiService>();
 builder.Services.AddHostedService<TierAlertService>();
-
+// Abnormal Consumption Services
+builder.Services.AddScoped<IAbnormalConsumptionService, AbnormalConsumptionService>();
+builder.Services.AddHostedService<AbnormalConsumptionAlertService>();
 // HttpClient للـ OpenAI (إذا استخدمنا HttpClient مباشرة في الخدمة، لا حاجة هنا)
 //
 // Services
