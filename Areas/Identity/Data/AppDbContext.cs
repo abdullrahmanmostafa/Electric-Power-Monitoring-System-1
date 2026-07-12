@@ -14,6 +14,10 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
         public DbSet<UserDevice> UserDevices { get; set; }   // New table for FCM tokens
         public DbSet<User> Users { get; set; }
         public DbSet<UserHub> UserHubs { get; set; }
+        public DbSet<TierSetting> TierSettings { get; set; }
+        public DbSet<UserConsumptionTracking> UserConsumptionTracking { get; set; }
+        public DbSet<AiTipsCache> AiTipsCache { get; set; }
+        public DbSet<TierNotification> TierNotifications { get; set; }
         // Inside OnModelCreating
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -92,6 +96,39 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
                 entity.Property(e => e.RegisteredAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 entity.Property(e => e.LastUpdated).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
+            modelBuilder.Entity<UserConsumptionTracking>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserIdentifier, e.Year, e.Month })
+                      .IsUnique()
+                      .HasDatabaseName("IX_user_consumption_tracking_user_year_month");
+            });
+
+            modelBuilder.Entity<TierNotification>(entity =>
+            {
+                entity.HasIndex(e => e.UserIdentifier).HasDatabaseName("IX_tier_notifications_user");
+                entity.HasIndex(e => e.SentAt).HasDatabaseName("IX_tier_notifications_sent_at");
+            });
+            // شرائح الكهرباء في مصر (عداد مسبق الدفع) - مثال
+            modelBuilder.Entity<TierSetting>().HasData(
+                new TierSetting { Id = 1, TierName = "شريحة 1", MinKWh = 0, MaxKWh = 50, PricePerKWh = 0.68m, IsActive = true },
+                new TierSetting { Id = 2, TierName = "شريحة 2", MinKWh = 51, MaxKWh = 100, PricePerKWh = 0.78m, IsActive = true },
+                new TierSetting { Id = 3, TierName = "شريحة 3", MinKWh = 101, MaxKWh = 200, PricePerKWh = 0.95m, IsActive = true },
+                new TierSetting { Id = 4, TierName = "شريحة 4", MinKWh = 201, MaxKWh = 350, PricePerKWh = 1.20m, IsActive = true },
+                new TierSetting { Id = 5, TierName = "شريحة 5", MinKWh = 351, MaxKWh = 650, PricePerKWh = 1.45m, IsActive = true },
+                new TierSetting { Id = 6, TierName = "شريحة 6", MinKWh = 651, MaxKWh = 1000, PricePerKWh = 1.60m, IsActive = true },
+                new TierSetting { Id = 7, TierName = "شريحة 7", MinKWh = 1001, MaxKWh = decimal.MaxValue, PricePerKWh = 1.85m, IsActive = true }
+            );
+
+            // نصائح احتياطية
+            modelBuilder.Entity<AiTipsCache>().HasData(
+                new AiTipsCache { Id = 1, TipText = "أطفئ الأجهزة غير المستخدمة من الفيشة لتوفير الكهرباء.", IsActive = true },
+                new AiTipsCache { Id = 2, TipText = "استخدم لمبات LED بدلاً من اللمبات العادية.", IsActive = true },
+                new AiTipsCache { Id = 3, TipText = "اضبط درجة حرارة الثلاجة على المستوى المتوسط.", IsActive = true },
+                new AiTipsCache { Id = 4, TipText = "شغل الغسالة والغسالة الأطباق في أوقات الذروة المنخفضة (بعد 10 مساءً).", IsActive = true },
+                new AiTipsCache { Id = 5, TipText = "قلل من استخدام المكواة الكهربائية أو استخدمها لفترات قصيرة.", IsActive = true },
+                new AiTipsCache { Id = 6, TipText = "استخدم سخان المياه الشمسي بدلاً من الكهربائي.", IsActive = true },
+                new AiTipsCache { Id = 7, TipText = "افصل شاحن الهاتف بعد شحن البطارية.", IsActive = true }
+            );
         }
     }
 }

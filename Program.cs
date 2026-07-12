@@ -66,7 +66,12 @@ builder.Services.AddScoped<IPlugRepository, PlugRepository>();
 builder.Services.AddScoped<IReadingRepository, ReadingRepository>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserDeviceRepository, UserDeviceRepository>();
+// خدمات Tier
+builder.Services.AddScoped<ITierService, TierService>();
+builder.Services.AddScoped<IAiService, OpenAiService>();
+builder.Services.AddHostedService<TierAlertService>();
 
+// HttpClient للـ OpenAI (إذا استخدمنا HttpClient مباشرة في الخدمة، لا حاجة هنا)
 //
 // Services
 //
