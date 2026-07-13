@@ -60,6 +60,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 //
 // Repositories
 //
+// Lighting services
+builder.Services.AddScoped<ILightingService, LightingService>();
+builder.Services.AddHostedService<LightingEstimateService>();
+builder.Services.AddHostedService<CorrectionTriggerService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IHubRepository, HubRepository>();
 builder.Services.AddScoped<IPlugRepository, PlugRepository>();

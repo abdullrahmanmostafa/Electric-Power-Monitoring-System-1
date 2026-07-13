@@ -20,6 +20,9 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
         public DbSet<TierNotification> TierNotifications { get; set; }
         public DbSet<DeviceBaseline> DeviceBaselines { get; set; }
         public DbSet<AbnormalConsumptionTracking> AbnormalConsumptionTrackings { get; set; }
+        public DbSet<LightingEstimate> LightingEstimates { get; set; }
+        public DbSet<MeterReading> MeterReadings { get; set; }
+        public DbSet<UserMandatoryState> UserMandatoryStates { get; set; }
         // Inside OnModelCreating
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -31,6 +34,25 @@ namespace Electric_Power_Monitoring_System.Areas.Identity.Data
                 entity.HasIndex(e => new { e.UserIdentifier, e.HubSerial })
                       .IsUnique()
                       .HasDatabaseName("IX_user_hubs_user_hub");
+            });
+            modelBuilder.Entity<LightingEstimate>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserIdentifier, e.Year, e.Month, e.Day })
+                      .IsUnique()
+                      .HasDatabaseName("IX_lighting_estimates_user_year_month_day");
+            });
+
+            modelBuilder.Entity<MeterReading>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserIdentifier, e.Year, e.Month })
+                      .HasDatabaseName("IX_meter_readings_user_year_month");
+            });
+
+            modelBuilder.Entity<UserMandatoryState>(entity =>
+            {
+                entity.HasIndex(e => e.UserIdentifier)
+                      .IsUnique()
+                      .HasDatabaseName("IX_user_mandatory_state_user");
             });
             modelBuilder.Entity<User>(entity =>
             {
