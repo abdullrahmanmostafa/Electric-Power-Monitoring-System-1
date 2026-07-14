@@ -20,7 +20,7 @@ namespace Electric_Power_Monitoring_System.Models
         public decimal MinKWh { get; set; }
 
         [Column("max_kwh")]
-        [Precision(20, 10)]
+        [Precision(38, 10)]
         public decimal MaxKWh { get; set; }
 
         [Column("price_per_kwh")]
