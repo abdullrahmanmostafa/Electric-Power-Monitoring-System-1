@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -15,9 +16,11 @@ namespace Electric_Power_Monitoring_System.Models
         public string UserIdentifier { get; set; } = string.Empty;
 
         [Column("reading_value_wh")]
+        [Precision(20, 10)]
         public decimal ReadingValueWh { get; set; } // القيمة التراكمية للعداد بالواط/ساعة
 
         [Column("balance_egp")]
+        [Precision(20, 10)]
         public decimal? BalanceEgp { get; set; } // الرصيد المتبقي (اختياري)
 
         [Column("reading_date")]

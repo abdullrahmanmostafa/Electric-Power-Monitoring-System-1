@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -21,6 +22,7 @@ namespace Electric_Power_Monitoring_System.Models
         public int Month { get; set; }
 
         [Column("cumulative_consumption_wh")]
+        [Precision(20, 10)]
         public decimal CumulativeConsumptionWh { get; set; }
 
         [Column("last_updated")]

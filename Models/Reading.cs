@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Electric_Power_Monitoring_System.Models
 {
@@ -22,6 +23,7 @@ namespace Electric_Power_Monitoring_System.Models
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;  // Server-generated
 
         [Column("cumulative_energy_wh")]
+        [Precision(20, 10)]
         public decimal CumulativeEnergyWh { get; set; }  // Watt-hours
 
         [Column("state")]

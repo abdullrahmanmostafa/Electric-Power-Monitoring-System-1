@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -15,12 +16,15 @@ namespace Electric_Power_Monitoring_System.Models
         public string TierName { get; set; } = string.Empty;
 
         [Column("min_kwh")]
+        [Precision(20, 10)]
         public decimal MinKWh { get; set; }
 
         [Column("max_kwh")]
+        [Precision(20, 10)]
         public decimal MaxKWh { get; set; }
 
         [Column("price_per_kwh")]
+        [Precision(20, 10)]
         public decimal PricePerKWh { get; set; }
 
         [Column("is_active")]

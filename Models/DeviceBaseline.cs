@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -18,6 +19,7 @@ namespace Electric_Power_Monitoring_System.Models
         public int PlugNumber { get; set; }
 
         [Column("baseline_wh")]
+        [Precision(20, 10)]
         public decimal BaselineWh { get; set; } // المعدل الطبيعي بالواط/ساعة
 
         [Column("calculated_date")]

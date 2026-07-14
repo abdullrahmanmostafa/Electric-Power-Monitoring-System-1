@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -27,6 +28,7 @@ namespace Electric_Power_Monitoring_System.Models
         public DateTime? LastAlertDate { get; set; }
 
         [Column("daily_consumption_wh")]
+        [Precision(20, 10)]
         public decimal? DailyConsumptionWh { get; set; }
 
         [Column("is_resolved")]

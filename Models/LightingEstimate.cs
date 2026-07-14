@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Electric_Power_Monitoring_System.Models
@@ -24,9 +25,11 @@ namespace Electric_Power_Monitoring_System.Models
         public int Day { get; set; }
 
         [Column("estimated_wh")]
+        [Precision(20, 10)]
         public decimal EstimatedWh { get; set; } // التقدير اليومي (واط/ساعة)
 
         [Column("actual_wh")]
+        [Precision(20, 10)]
         public decimal? ActualWh { get; set; } // القيمة الفعلية بعد التصحيح
 
         [Column("is_corrected")]
