@@ -40,7 +40,7 @@ namespace Electric_Power_Monitoring_System.Services
                 var json = JsonSerializer.Serialize(requestBody);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
+                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey.Trim()}");
 
                 var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
                 if (!response.IsSuccessStatusCode)

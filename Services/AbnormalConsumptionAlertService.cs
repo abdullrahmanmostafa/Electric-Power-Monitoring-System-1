@@ -24,8 +24,8 @@ namespace Electric_Power_Monitoring_System.Services
                 var now = DateTime.UtcNow;
                 var egyptNow = TimeZoneInfo.ConvertTime(now, _egyptTimeZone);
                 var nextMidnight = egyptNow.Date.AddDays(1);
-                 var delay = nextMidnight - egyptNow;
-                //var delay = TimeSpan.FromSeconds(30); // TEMP - revert after testing
+                 //var delay = nextMidnight - egyptNow;
+                var delay = TimeSpan.FromSeconds(30); // TEMP - revert after testing
 
                 _logger.LogInformation("Next abnormal consumption check scheduled at {NextMidnight} Egypt time", nextMidnight);
 
