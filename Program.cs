@@ -49,11 +49,11 @@ builder.Services.AddSwaggerGen(c =>
 //
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-if (string.IsNullOrEmpty(connectionString))
+/*if (string.IsNullOrEmpty(connectionString))
 {
     throw new Exception("Database connection string is missing!");
 }
-
+*/
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 

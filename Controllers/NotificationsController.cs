@@ -129,7 +129,7 @@ namespace Electric_Power_Monitoring_System.Controllers
                     Type = "abnormal_alert",
                     Title = GetAbnormalTitle(x.a.Stage),
                     Message = GetAbnormalMessage(x.a.Stage, x.a.PlugNumber, x.a.DailyConsumptionWh ?? 0),
-                    Timestamp = x.a.LastAlertDate ?? x.a.AlertStageStartDate,
+                    Timestamp = x.a.LastAlertDate ?? x.a.StageStartDate,
                     HubSerial = x.a.HubSerial,
                     PlugNumber = x.a.PlugNumber,
                     Stage = x.a.Stage,
