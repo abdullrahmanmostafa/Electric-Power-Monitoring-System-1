@@ -41,8 +41,7 @@ namespace Electric_Power_Monitoring_System.Services
                 }
                 catch (TimeZoneNotFoundException)
                 {
-                    // Fallback to UTC + 2 (Eastern European Time, no DST adjustment – Egypt no longer uses DST as of 2014)
-                    // But we'll use a fixed offset to be safe
+                    // Fallback to UTC + 2
                     _logger.LogWarning("Egypt timezone not found, using UTC+2 as fallback");
                     return TimeZoneInfo.CreateCustomTimeZone(
                         "Egypt Standard Time",
@@ -59,14 +58,13 @@ namespace Electric_Power_Monitoring_System.Services
             {
                 var now = DateTime.UtcNow;
                 var egyptNow = TimeZoneInfo.ConvertTime(now, _egyptTimeZone);
-                var nextMidnight = egyptNow.Date.AddDays(1); // tomorrow at 00:00 Egypt time
+                var nextMidnight = egyptNow.Date.AddDays(1);
                 var delay = nextMidnight - egyptNow;
 
                 _logger.LogInformation("Next alert check scheduled at {NextMidnight} Egypt time", nextMidnight);
 
                 await Task.Delay(delay, stoppingToken);
 
-                // Run the alert checks
                 await RunAlertChecks(stoppingToken);
             }
         }
@@ -158,18 +156,19 @@ namespace Electric_Power_Monitoring_System.Services
                 }
             }
         }
+
         private async Task SendAlertToAllUsers(
-    List<string> userIdentifiers,
-    string hubSerial,
-    int plugNumber,
-    decimal currentConsumption,
-    decimal previousConsumption,
-    string periodType,
-    DateTime periodStart,
-    DateTime periodEnd,
-    IFcmSender fcmSender,
-    INotificationRepository notificationRepo,
-    IUserDeviceRepository userDeviceRepo)
+            List<string> userIdentifiers,
+            string hubSerial,
+            int plugNumber,
+            decimal currentConsumption,
+            decimal previousConsumption,
+            string periodType,
+            DateTime periodStart,
+            DateTime periodEnd,
+            IFcmSender fcmSender,
+            INotificationRepository notificationRepo,
+            IUserDeviceRepository userDeviceRepo)
         {
             if (currentConsumption == previousConsumption)
                 return;
@@ -180,11 +179,40 @@ namespace Electric_Power_Monitoring_System.Services
 
             var direction = currentConsumption > previousConsumption ? "increased" : "decreased";
             var changePercentAbs = Math.Abs(percentChange);
-            var message = periodType == "daily"
-                ? $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous day."
-                : $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous week.";
 
-            var title = "Energy Alert";
+            // ===== رسائل باللغة العربية =====
+            string title;
+            string message;
+
+            if (periodType == "daily")
+            {
+                title = "تنبيه يومي - استهلاك الكهرباء";
+                if (direction == "increased")
+                {
+                    message = $"📈 زاد استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة باليوم السابق.";
+                }
+                else
+                {
+                    message = $"📉 انخفض استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة باليوم السابق.";
+                }
+            }
+            else // weekly
+            {
+                title = "تنبيه أسبوعي - استهلاك الكهرباء";
+                if (direction == "increased")
+                {
+                    message = $"📈 زاد استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة بالأسبوع الماضي.";
+                }
+                else
+                {
+                    message = $"📉 انخفض استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة بالأسبوع الماضي.";
+                }
+            }
+
+            // إضافة معلومات إضافية عن الجهاز والاستهلاك
+            message += $"\n🔄 الجهاز: {hubSerial} - المنفذ: {plugNumber}";
+            message += $"\n📊 الاستهلاك الحالي: {currentConsumption:F2} واط/ساعة";
+            message += $"\n📊 الاستهلاك السابق: {previousConsumption:F2} واط/ساعة";
 
             foreach (var userId in userIdentifiers)
             {
@@ -214,6 +242,8 @@ namespace Electric_Power_Monitoring_System.Services
                 await notificationRepo.AddAsync(notification);
             }
         }
+
+        // هذه الدالة لم تعد مستخدمة، لكننا نعدلها أيضاً للاحتياط
         private async Task SendAlertIfChanged(
             string userId,
             string hubSerial,
@@ -227,7 +257,6 @@ namespace Electric_Power_Monitoring_System.Services
             INotificationRepository notificationRepo,
             IUserDeviceRepository userDeviceRepo)
         {
-            // No change or zero consumption on both sides? Skip if exactly equal
             if (currentConsumption == previousConsumption)
                 return;
 
@@ -238,18 +267,38 @@ namespace Electric_Power_Monitoring_System.Services
             var direction = currentConsumption > previousConsumption ? "increased" : "decreased";
             var changePercentAbs = Math.Abs(percentChange);
 
+            string title;
             string message;
+
             if (periodType == "daily")
             {
-                message = $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous day.";
+                title = "تنبيه يومي - استهلاك الكهرباء";
+                if (direction == "increased")
+                {
+                    message = $"📈 زاد استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة باليوم السابق.";
+                }
+                else
+                {
+                    message = $"📉 انخفض استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة باليوم السابق.";
+                }
             }
             else
             {
-                message = $"Hub {hubSerial}: Plug {plugNumber} consumption {direction} by {changePercentAbs:F1}% compared to the previous week.";
+                title = "تنبيه أسبوعي - استهلاك الكهرباء";
+                if (direction == "increased")
+                {
+                    message = $"📈 زاد استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة بالأسبوع الماضي.";
+                }
+                else
+                {
+                    message = $"📉 انخفض استهلاك الجهاز رقم {plugNumber} بنسبة {changePercentAbs:F1}% مقارنة بالأسبوع الماضي.";
+                }
             }
-            var title = "Energy Alert";
 
-            // Get user's FCM tokens
+            message += $"\n🔄 الجهاز: {hubSerial} - المنفذ: {plugNumber}";
+            message += $"\n📊 الاستهلاك الحالي: {currentConsumption:F2} واط/ساعة";
+            message += $"\n📊 الاستهلاك السابق: {previousConsumption:F2} واط/ساعة";
+
             var devices = await userDeviceRepo.GetByUserIdAsync(userId);
             if (!devices.Any())
             {
@@ -257,7 +306,6 @@ namespace Electric_Power_Monitoring_System.Services
                 return;
             }
 
-            // Send notification to each device
             foreach (var device in devices)
             {
                 var sent = await fcmSender.SendNotificationAsync(device.FcmToken, title, message);
@@ -271,7 +319,6 @@ namespace Electric_Power_Monitoring_System.Services
                 }
             }
 
-            // Store notification in database
             var notification = new Notification
             {
                 UserId = userId,
