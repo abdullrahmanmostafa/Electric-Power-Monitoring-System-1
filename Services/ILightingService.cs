@@ -9,5 +9,6 @@ namespace Electric_Power_Monitoring_System.Services
         Task<LightingConsumptionDto> GetLightingConsumptionAsync(string userIdentifier, int year, int month);
         Task ActivateMandatoryModeForAllUsersAsync();
         Task DeactivateMandatoryModeForUserAsync(string userIdentifier);
+        Task ActivateMandatoryModeForUserAsync(string userIdentifier);
     }
 }

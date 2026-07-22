@@ -18,7 +18,30 @@ namespace Electric_Power_Monitoring_System.Services
             _readingRepo = readingRepo;
             _logger = logger;
         }
+        public async Task ActivateMandatoryModeForUserAsync(string userIdentifier)
+        {
+            var state = await _context.UserMandatoryStates.FirstOrDefaultAsync(s => s.UserIdentifier == userIdentifier);
+            var expiryDate = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, DateTime.DaysInMonth(DateTime.UtcNow.Year, DateTime.UtcNow.Month));
 
+            if (state == null)
+            {
+                state = new UserMandatoryState
+                {
+                    UserIdentifier = userIdentifier,
+                    IsMandatory = true,
+                    ExpiryDate = expiryDate,
+                    LastUpdated = DateTime.UtcNow
+                };
+                _context.UserMandatoryStates.Add(state);
+            }
+            else
+            {
+                state.IsMandatory = true;
+                state.ExpiryDate = expiryDate;
+                state.LastUpdated = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync();
+        }
         public async Task<bool> SubmitMeterReadingAsync(string userIdentifier, MeterReadingRequestDto request)
         {
             var now = DateTime.UtcNow;
