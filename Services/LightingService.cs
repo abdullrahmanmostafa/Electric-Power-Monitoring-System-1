@@ -18,6 +18,7 @@ namespace Electric_Power_Monitoring_System.Services
             _readingRepo = readingRepo;
             _logger = logger;
         }
+
         public async Task ActivateMandatoryModeForUserAsync(string userIdentifier)
         {
             var state = await _context.UserMandatoryStates.FirstOrDefaultAsync(s => s.UserIdentifier == userIdentifier);
@@ -42,6 +43,7 @@ namespace Electric_Power_Monitoring_System.Services
             }
             await _context.SaveChangesAsync();
         }
+
         public async Task<bool> SubmitMeterReadingAsync(string userIdentifier, MeterReadingRequestDto request)
         {
             var now = DateTime.UtcNow;
@@ -55,6 +57,9 @@ namespace Electric_Power_Monitoring_System.Services
             var actualLightingWh = request.ReadingValueWh - measuredWh;
             if (actualLightingWh < 0) actualLightingWh = 0;
 
+            // 2a. حساب النسبة الفعلية للإنارة من إجمالي الاستهلاك المقاس
+            var actualPercentage = measuredWh > 0 ? (actualLightingWh / measuredWh) * 100 : 0;
+
             // 3. تخزين قراءة العداد
             var meterReading = new MeterReading
             {
@@ -67,15 +72,20 @@ namespace Electric_Power_Monitoring_System.Services
             };
             _context.MeterReadings.Add(meterReading);
 
-            // 4. تحديث جميع تقديرات الإنارة لهذا الشهر بالقيمة الفعلية
+            // 4. تحديث جميع تقديرات الإنارة لهذا الشهر بالقيمة الفعلية والنسبة
             var estimates = await _context.LightingEstimates
                 .Where(e => e.UserIdentifier == userIdentifier && e.Year == year && e.Month == month)
                 .ToListAsync();
 
-            foreach (var estimate in estimates)
+            if (estimates.Any())
             {
-                estimate.ActualWh = actualLightingWh / estimates.Count; // توزيع القيمة الفعلية على الأيام
-                estimate.IsCorrected = true;
+                var avgActual = actualLightingWh / estimates.Count;
+                foreach (var estimate in estimates)
+                {
+                    estimate.ActualWh = avgActual;
+                    estimate.ActualPercentage = actualPercentage; // تخزين النسبة الفعلية
+                    estimate.IsCorrected = true;
+                }
             }
 
             // 5. إلغاء وضع الإلزام للمستخدم
@@ -83,7 +93,8 @@ namespace Electric_Power_Monitoring_System.Services
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Meter reading submitted for user {UserId}, actual lighting: {ActualWh} Wh", userIdentifier, actualLightingWh);
+            _logger.LogInformation("Meter reading submitted for user {UserId}, actual lighting: {ActualWh} Wh, percentage: {Percentage}%",
+                userIdentifier, actualLightingWh, actualPercentage);
             return true;
         }
 
@@ -117,6 +128,8 @@ namespace Electric_Power_Monitoring_System.Services
             var totalEstimated = estimates.Sum(e => e.EstimatedWh);
             var totalActual = estimates.Any(e => e.IsCorrected) ? estimates.Sum(e => e.ActualWh ?? 0) : (decimal?)null;
             var isCorrected = estimates.Any(e => e.IsCorrected);
+            // استخراج النسبة الفعلية من أول سجل مصحح (جميع السجلات لها نفس النسبة بعد التصحيح)
+            var actualPercentage = isCorrected ? estimates.FirstOrDefault(e => e.IsCorrected)?.ActualPercentage : null;
 
             var dailyData = estimates.Select(e => new DailyLightingDto
             {
@@ -133,13 +146,14 @@ namespace Electric_Power_Monitoring_System.Services
                 EstimatedTotalWh = totalEstimated,
                 ActualTotalWh = totalActual,
                 IsCorrected = isCorrected,
+                EstimationPercentage = 13m, // نسبة التقدير الثابتة
+                ActualPercentage = actualPercentage, // النسبة الفعلية بعد التصحيح (إن وجدت)
                 DailyEstimates = dailyData
             };
         }
 
         public async Task ActivateMandatoryModeForAllUsersAsync()
         {
-            // جلب جميع المستخدمين الذين لديهم أجهزة
             var userIdentifiers = await _context.UserHubs
                 .Select(uh => uh.UserIdentifier)
                 .Distinct()
@@ -192,7 +206,7 @@ namespace Electric_Power_Monitoring_System.Services
         // دالة مساعدة لحساب الاستهلاك المقاس بواسطة الأجهزة في الشهر
         private async Task<decimal> GetMeasuredConsumptionAsync(string userIdentifier, int year, int month)
         {
-            var start = new DateTime(year, month, 1);
+            var start = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
             var end = start.AddMonths(1);
 
             var hubSerials = await _context.UserHubs

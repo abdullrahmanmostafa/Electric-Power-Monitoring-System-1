@@ -31,7 +31,9 @@ namespace Electric_Power_Monitoring_System.Models
         [Column("actual_wh")]
         [Precision(20, 10)]
         public decimal? ActualWh { get; set; } // القيمة الفعلية بعد التصحيح
-
+        [Column("actual_percentage")]
+        [Precision(20, 10)]
+        public decimal? ActualPercentage { get; set; } // النسبة الفعلية بعد التصحيح
         [Column("is_corrected")]
         public bool IsCorrected { get; set; } = false;
 

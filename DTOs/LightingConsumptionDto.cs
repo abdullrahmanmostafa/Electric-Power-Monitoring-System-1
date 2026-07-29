@@ -6,6 +6,8 @@
         public int Month { get; set; }
         public decimal EstimatedTotalWh { get; set; }
         public decimal? ActualTotalWh { get; set; }
+        public decimal EstimationPercentage { get; set; } = 13m;
+        public decimal? ActualPercentage { get; set; }
         public bool IsCorrected { get; set; }
         public List<DailyLightingDto> DailyEstimates { get; set; } = new();
     }
